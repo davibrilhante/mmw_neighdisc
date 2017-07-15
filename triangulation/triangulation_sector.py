@@ -57,7 +57,7 @@ def beamformingReal(nodes, i, j, varD, varA, meand, devd, meana, deva):
 	equal to 0.8/2.33
 	Then the resulting error associated with the beamforming measured distance
 	is more or less these random variable we just defined'''
-        
+
 	if i == j: return [0,0,0]
 
 	#==== DISTANCE ERROR CALC ====#
@@ -67,7 +67,7 @@ def beamformingReal(nodes, i, j, varD, varA, meand, devd, meana, deva):
 			new_meand = math.exp(meand+devd/2)
 			new_devd = math.exp(2*meand+devd)*(math.exp(devd)-1)
 			erro = random.lognormvariate(new_meand,new_devd)#*random.choice([-1,1])
-		else: print 'ERROR! Random Variable not available'	
+		else: print 'ERROR! Random Variable not available'
 	else: erro = 0
 	dist = round(math.hypot(nodes[i].x-nodes[j].x,nodes[i].y-nodes[j].y),2)+erro
 
@@ -94,47 +94,35 @@ def estimating(nodes, i, j, leader, maptable):
 	signal = math.copysign(1, maptable[i][0]-maptable[j][0])
 
 	estimative = math.atan2(maptable[j][1]*math.sin(angleDiff), maptable[i][1] - (maptable[j][1]*math.cos(angleDiff)))
-	
-	
+
+
 	if(maptable[i][0] > nodes[i].beamwidth/2): nodes[i].angleToLeader = maptable[i][0] - nodes[i].nBeams/2
 	else: nodes[i].angleToLeader = maptable[i][0] + nodes[i].nBeams/2
-	
+
 	if nodes[i].angleToLeader < 0: nodes[i].angleToLeader = nodes[i].nBeams + nodes[i].angleToLeader
 	#if round(nodes[i].angleToLeader,6) == round(2*pi,6): return [0, round(maptable[i][1],2), 'l']
-	if nodes[j].isLeader == True: 
-		#if round(nodes[i].angleToLeader,2) == round(2*pi,2): 
+	if nodes[j].isLeader == True:
+		#if round(nodes[i].angleToLeader,2) == round(2*pi,2):
 		#	return [0, round(maptable[i][1],2), 'l']
-		#else: 
+		#else:
 		return [nodes[i].angleToLeader, round(maptable[i][1],2), round(nodes[i].angleToLeader,6), 'l' ]
 
 	dist = round(math.sqrt(maptable[i][1]**2+maptable[j][1]**2+2*maptable[i][1]*maptable[j][1]*math.cos(angleDiff)),2)
 
 	if angleDiff==0:
 		if maptable[i][1] > maptable[j][1]: return[nodes[i].angleToLeader, dist, round(nodes[i].angleToLeader*nodes[i].beamwidth,2)]
-		elif maptable[i][1] < maptable[j][1]: 
+		elif maptable[i][1] < maptable[j][1]:
 			if nodes[i].angleToLeader > (nodes[i].nBeams/2 -1):
 				return[nodes[i].angleToLeader - nodes[i].nBeams/2, dist, round((nodes[i].angleToLeader- nodes[i].nBeams/2)*nodes[i].beamwidth,2)]
 			elif nodes[i].angleToLeader < (nodes[i].nBeams/2 -1):
 				return[nodes[i].angleToLeader + nodes[i].nBeams/2, dist, round((nodes[i].angleToLeader+ nodes[i].nBeams/2)*nodes[i].beamwidth,2)]
-	'''
-	if (signal>0):
-                beam = int((nodes[i].angleToLeader*nodes[i].beamwidth + estimative)/nodes[i].beamwidth)#,dist,1]
-                a = round(nodes[i].angleToLeader*nodes[i].beamwidth+estimative,2)
-        else:
-                beam =  int((nodes[i].angleToLeader*nodes[i].beamwidth - estimative)/nodes[i].beamwidth)
-                a = round(nodes[i].angleToLeader*nodes[i].beamwidth-estimative,2)#, dist,2]
 
-        if (a < 0): beam = int((2*pi + a)/nodes[i].beamwidth)
-        if (beam >= nodes[i].nBeams): beam = beam - nodes[i].nBeams
-        if a == round(2*pi,6): beam = 0
-        return [beam, dist, a]
-	'''
-	if (signal>0): 
+	if (signal>0):
 		a = round(nodes[i].angleToLeader*nodes[i].beamwidth+estimative,1)
 		a2 = nodes[i].angleToLeader*nodes[i].beamwidth+estimative
 		beam = int(round(((nodes[i].angleToLeader+0.5)*nodes[i].beamwidth + estimative)/nodes[i].beamwidth,1))#,dist,1]
 		#beam = int(a/nodes[i].beamwidth)
-	else: 
+	else:
 		a = round(nodes[i].angleToLeader*nodes[i].beamwidth-estimative,1)#, dist,2]
 		a2 = nodes[i].angleToLeader*nodes[i].beamwidth-estimative
 		beam =  int(round(((nodes[i].angleToLeader+0.5)*nodes[i].beamwidth - estimative)/nodes[i].beamwidth,1))
@@ -147,7 +135,7 @@ def estimating(nodes, i, j, leader, maptable):
 
 	#elif (a > round(2*pi, 2)): beam = int(round((a2 - 2*pi)/nodes[i].beamwidth,1))
 
-	if (beam >= nodes[i].nBeams): 
+	if (beam >= nodes[i].nBeams):
 		a = round(a2 - 2*pi, 2)
 		beam = beam - nodes[i].nBeams
 
@@ -171,7 +159,7 @@ def txSched(nodes,nNodes):
 			y = random.choice(seq)
 
 		transmissions[i] = [x,y]
-	
+
 	return transmissions
 
 def txCheck(nodes, proof, tx, rx):
@@ -179,8 +167,11 @@ def txCheck(nodes, proof, tx, rx):
 	i = 1
 	attempt = random.choice([-1,1])
 	while  check == False:
+        #the sector obtained from lider is ok!
 		if nodes[tx].angleList[rx][0] == proof[tx][rx][0]: check =True
+        #The sector obtained is not ok, but we will alleviate
 		elif int(sys.argv[5])==1 and abs(nodes[tx].angleList[rx][0] - proof[tx][rx][0]) <= 1: check=True
+        #The sector is not ok and we will guess another adjacent sector
 		else:
 			nodes[tx].angleList[rx][0] += attempt
 			if nodes[tx].angleList[rx][0] < 0: nodes[tx].angleList[rx][0] = nodes[tx].nBeams + nodes[tx].angleList[rx][0]
@@ -188,7 +179,7 @@ def txCheck(nodes, proof, tx, rx):
 			i += 1
 
 	return i
-	
+
 
 '''
 def drawNetwork(nodes):
@@ -203,7 +194,7 @@ def drawNetwork(nodes):
 	plt.yticks(y)
 	plt.plot(x,y, 'ro', ms=20)
 	plt.grid(True)
-	plt.show()	
+	plt.show()
 '''
 
 if __name__ == "__main__":
@@ -217,8 +208,8 @@ if __name__ == "__main__":
         seed = int(sys.argv[6])#5])
 	relief = int(sys.argv[5])
         random.seed(seed)
-	
-	
+
+
 	'''-------- PREPARING ERROR ---------'''
 	indexd = int(sys.argv[3])
 	indexa = int(sys.argv[4])
@@ -278,7 +269,7 @@ if __name__ == "__main__":
 		for i in range(nNodes):
 			nodes[chosen].angleList.append(estimating(nodes,chosen, i, leader, nodes[leader].angleList))
 			temp.append(beamforming(nodes,chosen,i))
-			#print proof[i], nodes[chosen].angleList[i] 
+			#print proof[i], nodes[chosen].angleList[i]
 		proof.append(temp)
 
 		template = "{0:15}"
@@ -312,7 +303,7 @@ if __name__ == "__main__":
 					else:
 						b += abs(temp[i][2] - nodes[chosen].angleList[i][2])
 						count+=1
-						
+
 				else:
 					b += abs(temp[i][2] - nodes[chosen].angleList[i][2])
 					count+=1
@@ -323,7 +314,7 @@ if __name__ == "__main__":
 	#fairness = 1.0*sum(fair)**2/(nNodes*part)
 				#print template.format(proof[i]),
 				#print template.format(nodes[chosen].angleList[i]),
-				#print "-----> ERROR sectorized2.py", leader, chosen, seed 
+				#print "-----> ERROR sectorized2.py", leader, chosen, seed
 			#else: print "\n",'''
 
 	print round(1.0*num/den,6)#number of errors
