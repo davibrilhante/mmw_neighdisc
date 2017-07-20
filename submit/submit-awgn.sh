@@ -16,7 +16,7 @@ DIR="/homesim/dbrilhante/outputs/power_eff_nodes"
 WAF_COMMAND="./waf --run"
 
 #Trocar pelo nome do seu script
-SCRIPT_COMMAND="python ../triangulation/triangulation_sector.py"
+SCRIPT_COMMAND="python ../triangulation/triangulation_awgn.py"
 
 #N_BEAMS=(4 8 16 32)
 NNODES=`seq -f%02.f 10 20 50`
