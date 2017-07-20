@@ -29,7 +29,7 @@ class Node:
                 self.txPower=power
         def setAdj(self,nNodes):
                 for i in range(nNodes):
-                        self.adj.append(random.gauss(0.5,0.05))
+                        self.adj.append(random.gauss(0.5,float(sys.argv[6])))
 
         def setBeams (self, nBeams):
                 #set node's number o beams/sectors
@@ -212,7 +212,7 @@ if __name__ == "__main__":
         longitude = 10
         leader = 0#int(sys.argv[1])
         #chosen = int (sys.argv[2])
-        seed = int(sys.argv[6])#5])
+        seed = int(sys.argv[7])#5])
 	relief = int(sys.argv[5])
         random.seed(seed)
 
