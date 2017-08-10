@@ -216,6 +216,9 @@ if __name__ == "__main__":
 	relief = int(sys.argv[5])
         random.seed(seed)
 
+	#	   |ack|bf|wait-ack|
+	time_arr = [1,1,1]
+	
 
 	'''-------- PREPARING ERROR ---------'''
 	indexd = int(sys.argv[3])
