@@ -169,23 +169,36 @@ def txSched(nodes,nNodes):
 
 	return transmissions
 
-def txCheck(nodes, proof, tx, rx):
+def txCheck(nodes, proof, tx, rx, tdict):
+	time = 0
 	check = False
 	i = 1
-	attempt = random.choice([-1,1])
+	signal = random.choice([-1,1])
+	#attempt = random.choice([-1,1])
 	while  check == False:
+		#if i <> 1:
+		attempt = -1*signal*i
+		signal = signal*-1
+		#print attempt, i
+		#raw_input()
         #the sector obtained from lider is ok!
-		if nodes[tx].angleList[rx][0] == proof[tx][rx][0]: check =True
+		if nodes[tx].angleList[rx][0] == proof[tx][rx][0]: 
+			time = tdict['txData']
+			check =True
         #The sector obtained is not ok, but we will alleviate
-		elif int(sys.argv[5])==1 and abs(nodes[tx].angleList[rx][0] - proof[tx][rx][0]) <= 1: check=True
+		elif int(sys.argv[5])==1 and abs(nodes[tx].angleList[rx][0] - proof[tx][rx][0]) <= 1:
+			time = tdict['txData']
+			check =True
         #The sector is not ok and we will guess another adjacent sector
 		else:
 			nodes[tx].angleList[rx][0] += attempt
 			if nodes[tx].angleList[rx][0] < 0: nodes[tx].angleList[rx][0] = nodes[tx].nBeams + nodes[tx].angleList[rx][0]
-			elif nodes[tx].angleList[rx][0] > nodes[tx].nBeams -1: nodes[tx].angleList[rx][0] = nodes[tx].angleList[rx][0] - nodes[tx].nBeams
+			elif nodes[tx].angleList[rx][0] > nodes[tx].nBeams -1: 
+				nodes[tx].angleList[rx][0] = nodes[tx].angleList[rx][0] - nodes[tx].nBeams
+			time += tdict['txData']+tdict['waitAck']	
 			i += 1
-
-	return i
+	time += tdict['txAck']
+	return [i, time]
 
 
 '''
@@ -216,8 +229,14 @@ if __name__ == "__main__":
 	relief = int(sys.argv[5])
         random.seed(seed)
 
-	#	   |ack|bf|wait-ack|
-	time_arr = [1,1,1]
+	time_arr = {'txAck':1,
+			'bf':1,
+		    	'waitAck':1,
+			'txData':1,
+			'txMap':1,
+			'txRts':1, 
+			'txCts':1, 
+			'txNum':1}
 	
 
 	'''-------- PREPARING ERROR ---------'''
@@ -340,22 +359,20 @@ if __name__ == "__main__":
 	for i in fair: fair[i]=0
 	num = 0
 	den = 0
-	overhead = 0
+	overhead = (time_arr['bf']*nNodes*nBeams**2)+time_arr['txNum']+time_arr['txMap']
 	schedule = txSched(nodes,nNodes)
 	#print schedule
 	for i in schedule:
+		overhead += time_arr['txRts']+time_arr['txCts']
 		#print i[0], nodes[i[0]].x, nodes[i[0]].y, '|', i[1], nodes[i[1]].x,nodes[i[1]].y, nodes[i[0]].angleList[i[1]][0]
 		den += 1
-		a = txCheck(nodes,proof,i[0],i[1])
-		#overhead += num*198
-		fair[i[0]]+=a
+		a, time = txCheck(nodes,proof,i[0],i[1], time_arr)
+		overhead += time
+		#fair[i[0]]+=a
 		num += a
 
-	#print round(1.0*num/den,6)
+	print round(1.0*num/den,6)
+	print overhead
 	part = 0
 	for i in fair: part += i**2
 	fairness = 1.0*sum(fair)**2/(nNodes*part)
-	#print round(fairness,6)
-	#		response    beamforming      beacons                               mapas
-	#fixedOverhead = (nNodes*32)+(nNodes*2*1074)+(random.randint(nNodes/2,nNodes)*1074)+((nNodes*25)+50)
-	#print fixedOverhead+overhead
