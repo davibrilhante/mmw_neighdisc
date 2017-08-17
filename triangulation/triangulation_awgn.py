@@ -29,7 +29,7 @@ class Node:
                 self.txPower=power
         def setAdj(self,nNodes):
                 for i in range(nNodes):
-                        self.adj.append(random.gauss(0.5,float(sys.argv[6])))
+                        self.adj.append(random.gauss(0.5,0.05))
 
         def setBeams (self, nBeams):
                 #set node's number o beams/sectors
@@ -201,8 +201,7 @@ def txCheck(nodes, proof, tx, rx, tdict):
 	return [i, time]
 
 
-'''
-def drawNetwork(nodes):
+'''def drawNetwork(nodes):
 	plt.ylim(-6,6)
 	plt.xlim(-6,6)
 	x = []
@@ -214,8 +213,7 @@ def drawNetwork(nodes):
 	plt.yticks(y)
 	plt.plot(x,y, 'ro', ms=20)
 	plt.grid(True)
-	plt.show()
-'''
+	plt.show()'''
 
 if __name__ == "__main__":
 	nNodes = int(sys.argv[1])
@@ -225,7 +223,7 @@ if __name__ == "__main__":
         longitude = 10
         leader = 0#int(sys.argv[1])
         #chosen = int (sys.argv[2])
-        seed = int(sys.argv[7])#5])
+        seed = int(sys.argv[6])#5])
 	relief = int(sys.argv[5])
         random.seed(seed)
 
@@ -372,6 +370,7 @@ if __name__ == "__main__":
 		num += a
 
 	print round(1.0*num/den,6)
+	print len(schedule)
 	print overhead
 	part = 0
 	for i in fair: part += i**2
