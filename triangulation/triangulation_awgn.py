@@ -152,21 +152,22 @@ def estimating(nodes, i, j, leader, maptable):
 
 def txSched(nodes,nNodes):
 	total = (nNodes-1)*(nNodes-2)
-	ntx = random.randint(total/2,total-1)
+	#ntx = random.randint(total/2,total-1)
 	transmissions = []
-	for i in range(ntx): transmissions.append([])
+	#for i in range(total): transmissions.append([])
 	seq = []
-	for i in range(nNodes): seq = seq + [i]
+	for i in range(1,nNodes): seq.append(i)
 
-	for i in range(ntx):
-		x=0
-		y=0
-		while x == y:
-			x = random.choice(seq)
-			y = random.choice(seq)
+	for x in seq:
+		for j in range(nNodes-2):
+			y=random.choice(seq)
+			while x == y or  transmissions.count([x,y])!=0:
+				#x = random.choice(seq)
+				y = random.choice(seq)
 
-		transmissions[i] = [x,y]
+			transmissions.append([x,y])
 
+	random.shuffle(transmissions)
 	return transmissions
 
 def txCheck(nodes, proof, tx, rx, tdict):
@@ -183,11 +184,11 @@ def txCheck(nodes, proof, tx, rx, tdict):
 		#raw_input()
         #the sector obtained from lider is ok!
 		if nodes[tx].angleList[rx][0] == proof[tx][rx][0]: 
-			time = tdict['txData']
+			time += tdict['txData']
 			check =True
         #The sector obtained is not ok, but we will alleviate
 		elif int(sys.argv[5])==1 and abs(nodes[tx].angleList[rx][0] - proof[tx][rx][0]) <= 1:
-			time = tdict['txData']
+			time += tdict['txData']
 			check =True
         #The sector is not ok and we will guess another adjacent sector
 		else:
