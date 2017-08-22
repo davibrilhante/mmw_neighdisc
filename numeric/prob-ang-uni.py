@@ -2,34 +2,33 @@ import numpy
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 
+pi = numpy.pi
 
-di=5.0
-dj=3.0
-
-r = di/dj
-k1 = 0.1
-k2 = 0.1
-
-Di = numpy.random.uniform(0,1,70000)
-Dj = []
-for i in Di: Dj.append(1/((i**2)*numpy.sqrt(1+i**2))) #numpy.random.uniform(dj-(k2*dj),dj+(k2*dj),70000)#0.1,2*dj,70000)#dj-(k2*dj),dj+(k2*dj),70000)
-
+theta = numpy.random.uniform(0,pi/2,70000)
+seno = []
+cotan = []
+f = []
+for i in theta: 
+	seno.append(1/numpy.sin(i))
+	cotan.append(1/numpy.tan(i))
+	f.append(1/numpy.sin(i) - 1/numpy.tan(i))
 samples = 300
 
 plt.subplot(311)
-n, bins, patches = plt.hist(Di, samples, normed=True, facecolor='green', alpha=0.75)
-plt.plot(bins, numpy.ones_like(bins)/(2*di), linewidth=1, color='r')
+n, bins, patches = plt.hist(seno, samples, normed=True, facecolor='green', alpha=0.75)
+plt.plot(bins, numpy.ones_like(bins), linewidth=1, color='r')
 plt.axis([0,10, 0, 3])
 
 plt.subplot(312)
-n, bins, patches = plt.hist(Dj, samples, normed=True, facecolor='green', alpha=0.75)
-plt.plot(bins, numpy.ones_like(bins)/(2*dj), linewidth=1, color='r')
+n, bins, patches = plt.hist(cotan, samples, normed=True, facecolor='green', alpha=0.75)
+plt.plot(bins, numpy.ones_like(bins), linewidth=1, color='r')
 plt.axis([0,10,0,3])
 
 plt.subplot(313)
-n, bins, patches = plt.hist((r/Di)-Dj, samples, normed=True, facecolor='green', alpha=0.75)
+n, bins, patches = plt.hist(f, samples, normed=True, facecolor='green', alpha=0.75)
 #plt.xlim(0,20)
 #plt.ylim(0,1)
+'''
 a = (di-(k1*di))
 c = (dj+(k2*dj))
 b = (di+(k1*di))
@@ -89,5 +88,5 @@ plt.title('Quociente de distribuicoes uniformes\n$d_i=$ '+str(di)+' e $d_j=$ '+s
 #plt.plot(bin_centers, h )
 #plt.axis([(dj-(k2*dj))*(di-(k1*di)),(di+(k1*di))*(dj+(k2*dj)),0,1])
 #plt.xlim((dj-(k2*dj))*(di-(k1*di)),(di+(k1*di))*(dj+(k2*dj)))
-
+'''
 plt.show()
