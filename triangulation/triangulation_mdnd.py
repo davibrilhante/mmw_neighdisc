@@ -184,11 +184,11 @@ def txCheck(nodes, proof, tx, rx, tdict):
 		#raw_input()
         #the sector obtained from lider is ok!
 		if nodes[tx].angleList[rx][0] == proof[tx][rx][0]: 
-			time += tdict['txData']
+			time += tdict['txData']+tdict['mmwsifs']
 			check =True
         #The sector obtained is not ok, but we will alleviate
 		elif int(sys.argv[5])==1 and abs(nodes[tx].angleList[rx][0] - proof[tx][rx][0]) <= 1:
-			time += tdict['txData']
+			time += tdict['txData']+tx['mmwsifs']
 			check =True
         #The sector is not ok and we will guess another adjacent sector
 		else:
@@ -196,9 +196,9 @@ def txCheck(nodes, proof, tx, rx, tdict):
 			if nodes[tx].angleList[rx][0] < 0: nodes[tx].angleList[rx][0] = nodes[tx].nBeams + nodes[tx].angleList[rx][0]
 			elif nodes[tx].angleList[rx][0] > nodes[tx].nBeams -1: 
 				nodes[tx].angleList[rx][0] = nodes[tx].angleList[rx][0] - nodes[tx].nBeams
-			time += tdict['txData']+tdict['waitAck']	
+			time += tdict['txData']+tdict['acktimeout']	
 			i += 1
-	time += tdict['txAck']
+	time += tdict['ack']
 	return [i, time]
 
 
@@ -228,16 +228,24 @@ if __name__ == "__main__":
 	relief = int(sys.argv[5])
         random.seed(seed)
 
-	time_arr = {'txAck':1,
-			'bf':1,
-		    	'waitAck':1,
-			'txData':1,
-			'txMap':1,
-			'txRts':1, 
-			'txCts':1, 
-			'txNum':1,
-			'sifs':1,
-			'difs':1}
+	mmw_rate=25.8
+	legacy_rate=1.0
+
+	#time unit -> micro seconds
+	time_arr = {'sswack':31/mmw_rate,
+			'ack':31/legacy_rate,
+			'ssw':26/mmw_rate,#bytes/transmission_rate
+			'sswfeedback':31/mmw_rate,
+		    	'acktimeout':300,
+			'txData':(1024+34+16)*8/mmw_rate,
+			'txMap':(16+34+(nNodes*50))*8/legacy_rate,#to do: define the length of map packet
+			'txRts':20.0*8/legacy_rate,#bytes*8/transmission_rate(Mbps)
+			'txCts':14.0*8/legacy_rate,#bytes*8/transmission_rate(Mbps)
+			'txNum':(34+16+(nNodes*50))*8/legacy_rate,#to do: define the length of ranking packet
+			'sifs':28,
+			'mmwsifs':3,
+			'difs':128,
+			'sbifs':1}
 	
 
 	'''-------- PREPARING ERROR ---------'''
@@ -360,11 +368,12 @@ if __name__ == "__main__":
 	for i in fair: fair[i]=0
 	num = 0
 	den = 0
-	overhead = (time_arr['bf']*nNodes*nBeams**2)+time_arr['txNum']+time_arr['txMap']
+	t_beamforming = 2*((time_arr['ssw']*nBeams)+(time_arr['sbifs']*(nBeams-1))+(2*time_arr['sifs'])+time_arr['sswfeedback']+time_arr['sswack'])
+	overhead = (nNodes*t_beamforming)+((nNodes-1)*time_arr['sifs'])+time_arr['txNum']+time_arr['sifs']+time_arr['txMap']
 	schedule = txSched(nodes,nNodes)
 	#print schedule
 	for i in schedule:
-		overhead += time_arr['txRts']+time_arr['txCts']
+		overhead += time_arr['difs']+time_arr['txRts']+time_arr['sifs']+time_arr['txCts']+time_arr['sifs']
 		#print i[0], nodes[i[0]].x, nodes[i[0]].y, '|', i[1], nodes[i[1]].x,nodes[i[1]].y, nodes[i[0]].angleList[i[1]][0]
 		den += 1
 		a, time = txCheck(nodes,proof,i[0],i[1], time_arr)
@@ -379,18 +388,18 @@ if __name__ == "__main__":
 	for i in fair: part += i**2
 	fairness = 1.0*sum(fair)**2/(nNodes*part)
 
-	mdnd={'probereq':1,
-		'proberesp':1,
-		'addtsreq':1,
-		'addtsresp':1,
-		'chreq':1,
-		'chresp':1,
-		'xchreq':1,
-		'xchresp':1,
-		'ssweep':1,
-		'ssfeedback':1,
-		'ssack':1,
-		'disconn':1}
+	mdnd={'probereq':(1024+34+16)*8/legacy_rate,
+		'proberesp':32*8/legacy_rate,
+		'addtsreq':(1024+34+16)*8/legacy_rate,
+		'addtsresp':32*8/legacy_rate,
+		'chreq':(1024+34+16)*8/legacy_rate,
+		'chresp':32*8/legacy_rate,
+		'xchreq':(1024+34+16)*8/legacy_rate,
+		'xchresp':32*8/legacy_rate,
+		'ssw':time_arr['ssw'],
+		'sswfeedback':time_arr['sswfeedback'],
+		'sswack':time_arr['sswack'],
+		'disconn':(1024+34+16)*8/legacy_rate}
 
 	past_nodes = []
 	mdnd_time = 0
@@ -399,12 +408,12 @@ if __name__ == "__main__":
 			past_nodes.append(i[0])
 			mdnd_time += mdnd['probereq']+time_arr['sifs']+mdnd['proberesp']
 		if schedule.index(i) < schedule.index([i[1],i[0]]):
-			mdnd_time += 2*((mdnd['ssweep']*nBeams)+mdnd['ssfeedback']+mdnd['ssack'])
+			mdnd_time += 2*((mdnd['ssw']*nBeams)+(time_arr['sbifs']*(nBeams-1))+(2*time_arr['sifs'])+mdnd['sswfeedback']+mdnd['sswack'])
 
 		mdnd_time += mdnd['addtsreq']+time_arr['sifs']+mdnd['addtsresp']+time_arr['sifs'] 
 		mdnd_time += 2*(mdnd['chreq']+time_arr['sifs']+mdnd['chresp']+time_arr['sifs']) 
 		mdnd_time += 2*(mdnd['xchreq']+time_arr['sifs']+mdnd['xchresp']+time_arr['sifs'])
-		mdnd_time += time_arr['txData']+time_arr['sifs']+time_arr['txAck']+time_arr['sifs']+mdnd['disconn']
+		mdnd_time += time_arr['txData']+time_arr['sifs']+time_arr['ack']+time_arr['sifs']+mdnd['disconn']
 
-	print mdnd_time
+	#print mdnd_time
 	
