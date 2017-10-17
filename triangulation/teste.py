@@ -2,6 +2,22 @@ import math
 
 pi = math.pi
 
+class Node:
+        def __init__(self,latitude,longitude,sense):
+                self.x=latitude
+                self.y=longitude
+                self.sensibility=sense #node sensibility in dbm
+                #The parameter below is like a DIRECTIONAL NETWORK ALLOCATION VECTOR
+                self.angleList = [] #list of angles to nodes, index i angle to node i
+                self.isLeader = False
+                self.north = 0 #if the nodes does not follow the same north as leader
+                self.Id = None #the node identification (number, mac, whatever)
+                self.angleToLeader = None
+                self.adj = []
+                self.wifiGain = 5
+                self.wifiTxPower = 20
+
+
 def projections(nbeams,r,node):
 	precision = 3
 	Projection = []
@@ -44,8 +60,23 @@ def projections(nbeams,r,node):
         return Projection
 
 
-def intersections(arrayI, arrayJ):
-	array = []
+def intersections(i, j, ri, rj):	#(arrayI, arrayJ):
+	d = math.hypot(i[0]-j[0], i[1]-j[1])
+	delta = 0.25*(math.sqrt((d+ri+rj)*(d+ri-rj)*(d-ri+rj)*(-d+ri+rj)))
+	x1 = ((i[0]+j[0])/2) + ((j[0]-i[0])*((ri**2)-(rj**2))/(2*d**2)) + (2*(i[1]-j[1])*delta/(d**2))
+	x2 = ((i[0]+j[0])/2) + ((j[0]-i[0])*((ri**2)-(rj**2))/(2*d**2)) - (2*(i[1]-j[1])*delta/(d**2))
+	y1 = ((i[1]+j[1])/2) + ((j[1]-i[1])*((ri**2)-(rj**2))/(2*d**2)) - (2*(i[0]-j[0])*delta/(d**2))
+	y2 = ((i[1]+j[1])/2) + ((j[1]-i[1])*((ri**2)-(rj**2))/(2*d**2)) + (2*(i[0]-j[0])*delta/(d**2))
+
+	print x1,y1,x2,y2
+	alpha1 = math.atan2(y1 - i[1],x1 - i[0])
+	alpha2 = math.atan2(- i[1] + y2,-i[0] + x2)
+
+	beta1 = math.atan2(y1 - j[1],x1 - j[0])
+	beta2 = math.atan2(y2 - j[1],x2 - j[0])
+	
+	print math.degrees(alpha1), math.degrees(alpha2), math.degrees(beta1), math.degrees(beta2)
+	'''array = []
 	countI = 0
 	for i in arrayI:
 		countJ = 0
@@ -64,7 +95,7 @@ def intersections(arrayI, arrayJ):
 					array.append([countI, countJ, intersectionX, intersectionY])
 			countJ += 1
 		countI += 1			
-	return array
+	return array'''
 
 
 
@@ -127,5 +158,5 @@ if __name__ == "__main__":
 	projectionsJ = projections(nbeamsJ, r, j)
 	print projectionsI
 	print projectionsJ
-	print intersections(projectionsI, projectionsJ)
+	print intersections(i,j,r,r)#(projectionsI, projectionsJ)
 
