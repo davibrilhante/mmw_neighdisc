@@ -1,4 +1,5 @@
 import math
+import random
 
 pi = math.pi
 
@@ -29,12 +30,15 @@ def projections(r,node, adj):
 	Projection = []
 	alpha = 2*pi/node.nBeams
         for n in range(node.nBeams):
-                if (n*alpha - adj < pi) and (n*alpha-adj < pi) and ((n+1)*alpha-adj > pi):
+                if (n*alpha < pi) and (n*alpha< adj) and ((n+1)*alpha-adj > adj):
                         x1 = node.x
                         x2 = node.x + r
+                elif (n*alpha < pi) and (n*alpha< pi+adj) and ((n+1)*alpha > pi+adj):
+                        x1 = node.x
+                        x2 = node.x - r
                 else:
-                        x1 = node.x + r*math.cos(n*alpha - adj)
-                        x2 = node.x + r*math.cos((n+1)*alpha - adj)
+                        x1 = node.x + r*math.cos(n*alpha-adj)
+                        x2 = node.x + r*math.cos((n+1)*alpha-adj)
                         #x = max(x1,x2) 
 		if x1< node.x and x2<node.x:
 			if x1<x2: x2 = node.x
@@ -43,10 +47,10 @@ def projections(r,node, adj):
 			if x1<x2: x1 = node.x
 			else: x2 = node.x 
 
-                if (n*alpha-adj < pi) and (n*alpha-adj < (pi/2)) and ((n+1)*alpha-adj > (pi/2)):
+                if (n*alpha < pi) and (n*alpha < (pi/2)+adj) and ((n+1)*alpha > (pi/2)+adj):
                         y1 = node.y + r
                         y2 = node.y
-                elif (n*alpha-adj > pi) and (n*alpha-adj < (3*pi/2)) and ((n+1)*alpha-adj > (3*pi/2)):
+                elif (n*alpha > pi) and (n*alpha < (3*pi/2)+adj) and ((n+1)*alpha > (3*pi/2)+adj):
                         y1 = node.y
                         y2 = node.y - r
                 else:
@@ -87,15 +91,45 @@ def intersections(i, j, ri, rj):	#(arrayI, arrayJ):
 
 	alpha[2] = math.atan2(y1 - j.y,x1 - j.x)
 	alpha[3] = math.atan2(y2 - j.y,x2 - j.x)
-	
+	widthI = max(alpha[0],alpha[1]) - min(alpha[0],alpha[1])
+	widthJ = max(alpha[2],alpha[3]) - min(alpha[2],alpha[3])
 	#print math.degrees(alpha[0]), math.degrees(alpha[1]), math.degrees(alpha[2]), math.degrees(alpha[3])
 	for m in range(len(alpha)):
 		if alpha[m] < 0:
 			alpha[m] = 2*pi + alpha[m]
 		print math.degrees(alpha[m])
+
+	print math.degrees(widthI), math.degrees(widthJ)
+	'''	
+	initI = alpha[0]/i.beamwidth
+	endI = alpha[1]/i.beamwidth
+	print int(alpha[1]/i.beamwidth)
+	beamsI = []
+	if round((endI-initI)*i.beamwidth,3) > round(widthI,3):
+		for m in range(int(endI), i.nBeams):
+			beamsI.append(m)
+		for m in range(int(initI)+1):
+			beamsI.append(m)
+	else:	
+		for m in range(int(initI), int(endI)+1):
+			beamsI.append(m)
+	initJ = alpha[2]/j.beamwidth
+	endJ = alpha[3]/j.beamwidth
+	print math.degrees((endJ-initJ)*j.beamwidth)
+	beamsJ = []
+	if round((endJ-initJ)*j.beamwidth,3) > round(widthJ,3):
+		for m in range(int(endJ), j.nBeams):
+			beamsJ.append(m)
+		for m in range(int(initJ)+1):
+			beamsJ.append(m)
+	else:	
+		for m in range(int(initJ), int(endJ)+1):
+			beamsJ.append(m)
+	print beamsI,beamsJ
+	'''
 	distI = math.hypot(i.x-x2, i.y-y2)
 	distJ = math.hypot(j.x-x2, j.y-y2)
-	
+
 	deltaI = math.atan2(i.y-y2,i.x-x2) - theta1
 	deltaJ = math.atan2(j.y-y2,j.x-x2) - theta1
 	print math.degrees(deltaI), math.degrees(deltaJ)
@@ -111,7 +145,29 @@ def intersections(i, j, ri, rj):	#(arrayI, arrayJ):
 	projectionsJ = projections(d, newJ, theta1)
 	print projectionsI
 	print projectionsJ
-
+	array = []
+	countI=0
+	for m in projectionsI:
+		countJ=0
+		for n in projectionsJ: 
+			'''
+			if ( (n[0][0] > min(m[0][0],m[0][1]) and n[0][0] < max(m[0][1],m[0][0])) or
+			     (n[0][1] > min(m[0][0],m[0][1]) and n[0][1] < max(m[0][1],m[0][0]))  or
+			     (n[0][0] == min(m[0][0],m[0][1]) and n[0][1] == max(m[0][0],m[0][1]) ) or
+			     (n[0][1] == min(m[0][0],m[0][1]) and n[0][0] == max(m[0][0],m[0][1]) ) ) :
+				if( (n[1][0] > min(m[1][0],m[1][1]) and n[1][0] < max(m[1][1],m[1][0])) or
+                           	    (n[1][1] > min(m[1][0],m[1][1]) and n[1][1] < max(m[1][1],m[1][0])) or
+				    (n[1][0] == min(m[1][0],m[1][1]) and n[1][1] == max(m[1][0],m[1][1]) ) or 
+                                    (n[1][1] == min(m[1][0],m[1][1]) and n[1][0] == max(m[1][0],m[1][1]) ) ):
+			'''
+			if  not ((max(n[0][0],n[0][1])<=min(m[0][0],m[0][1])) or (min(n[0][0],n[0][1]) >= max(m[0][1],m[0][0]))):
+			    #((min(n[1][0],n[1][1])>=min(m[1][0],m[1][1])) or (max(n[1][0],n[1][1]) <= max(m[1][1],m[1][0]))) ):
+				if not((max(n[1][0],n[1][1])<=min(m[1][0],m[1][1])) or (min(n[1][0],n[1][1]) >= max(m[1][1],m[1][0]))):
+					array.append([countI,countJ])
+			countJ+=1
+		countI+=1
+	return array
+	#'''			
 
 if __name__ == "__main__":
 	i = Node(0,0,10)#[0,0]
@@ -129,5 +185,18 @@ if __name__ == "__main__":
 	projectionsJ = projections(r, j,0)
 	print projectionsI
 	print projectionsJ
-	print intersections(i,j,r,r)#(projectionsI, projectionsJ)
+	array = intersections(i,j,r,r)#(projectionsI, projectionsJ)
+	p=[]
+	for m in range(i.nBeams):
+		count = 0
+		for n in array:
+			print n
+			if n[0]==m:
+				count +=1	
+		print count
+		if count<>0: p.append((1.0*count/j.nBeams)*(1.0/i.nBeams))
+		else: p.append(0)
 
+	print p
+	P = p[0]+p[1]+p[2]
+	print random.choices([1, 0], [P, 1 - P])#VER NUMPY
