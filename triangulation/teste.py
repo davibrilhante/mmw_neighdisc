@@ -1,5 +1,5 @@
 import math
-import random
+import random 
 
 pi = math.pi
 
@@ -199,4 +199,5 @@ if __name__ == "__main__":
 
 	print p
 	P = p[0]+p[1]+p[2]
-	print random.choices([1, 0], [P, 1 - P])#VER NUMPY
+	choice = [1]*int(P*100) + [0]*int((1-P)*100)
+	print random.choice(choice)#VER NUMPY
