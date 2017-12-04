@@ -189,7 +189,7 @@ def txCheck(nodes, proof, tx, rx, tdict):
 			check =True
         #The sector obtained is not ok, but we will alleviate
 		elif int(sys.argv[5])==1 and abs(nodes[tx].angleList[rx][0] - proof[tx][rx][0]) <= 1:
-			time += tdict['txData']+tx['mmwsifs']
+			time += tdict['txData']+tdict['mmwsifs']
 			check =True
         #The sector is not ok and we will guess another adjacent sector
 		else:
@@ -200,6 +200,9 @@ def txCheck(nodes, proof, tx, rx, tdict):
 			time += tdict['txData']+tdict['acktimeout']	
 			i += 1
 	time += tdict['ack']
+	# Returns the time spent to transmit the information, 
+	# taking in count the possible retransmissions and the 
+	# time to find the right beam to neighbor
 	return [i, time]
 
 
@@ -288,7 +291,7 @@ def intersections(i, j, ri, rj):        #(arrayI, arrayJ):
         newI = Node(distI*math.cos(deltaI), distI*math.sin(deltaI), 10)
         newJ = Node(distJ*math.cos(deltaJ), distJ*math.sin(deltaJ), 10)
         newI.setBeams(i.nBeams)
-        newJ.setBeams(j.nBeams)
+        newJ.setBeams(j.nBeams) #to receiver we will set the quasi omni mode
 
         #print newI.x, newI.y, newJ.x, newJ.y
 
@@ -330,10 +333,78 @@ def overhear(i, j):
                 else: p.append(0)
 
         #print p
+	#P=0
+	#for m in p:
+	#	P += m
         P = p[0]+p[1]+p[2]
         choice = [1]*int(P*100) + [0]*int((1-P)*100)
+	#print P, choice
 	i.setBeams(original)
         return random.choice(choice)
+
+def wifiModel(cw_min, nNodes,delta_difs, delta_sifs, payload, 
+	     delta_ack, delta_timeout, slot, slrc, wifi_rate ):
+	delta_tx = (payload*8.0)/wifi_rate #time to transmit the frame im micro seconds
+	w = cw_min
+	n = nNodes
+	time=0
+	cumul = 0
+	for s in range(1,slrc):
+		prod = 1
+		for k in range(1,s):
+			if ((2**k)*w) <= 1024:
+				tau_k = 2.0/((2**k)*w+1.0)
+
+			pt = 1.0 - (1.0 - tau_k)**n
+			ps = tau_k*(1.0 - tau_k)**(n-1)/pt
+
+			expected_col = (1.0 - n*ps)
+			prod = prod*expected_col
+
+		tau_s = 2.0/((2**s)*w+1.0)
+		pt = 1.0 - (1.0 - tau_s)**n
+		ps = tau_s*(1.0 - tau_s)**(n-1)/pt
+		expected_tx = (n*ps)#(delta_tx+delta_difs+delta_ack+delta_sifs)*k
+
+		cumul += prod*expected_tx*s
+
+	#plotter.append(cumul)#expected_bo+expected_tx+expected_col)
+	backoff = 0
+	for a in range(int(cumul)):
+		backoff += (((2**a)*w)-1.0)*slot/2
+
+	time = delta_difs + backoff + (math.ceil(cumul)+1)*(delta_sifs+delta_ack+delta_tx)
+	time = time*(n-2)*(n-1)
+	#tx_time.append(time/1e6)
+
+	for a in range(1,n):
+		cumul = 0
+		for s in range(1,8):
+			prod = 1
+			for k in range(1,s):
+				if ((2**k)*w) <= 1024:
+					tau_k = 2.0/((2**k)*w+1.0)
+
+				pt = 1.0 - (1.0 - tau_k)**a
+				ps = tau_k*(1.0 - tau_k)**(a-1)/pt
+
+				expected_col = (1.0 - a*ps)
+				prod = prod*expected_col
+
+			tau_s = 2.0/((2**s)*w+1.0)
+			pt = 1.0 - (1.0 - tau_s)**a
+			ps = tau_s*(1.0 - tau_s)**(a-1)/pt
+			expected_tx = (a*ps)
+
+			cumul += prod*expected_tx*s
+
+		backoff = 0
+		for a in range(int(cumul)):
+			backoff += (((2**a)*w)-1.0)*slot/2
+
+		time += delta_difs + backoff + (math.ceil(cumul)+1)*(delta_sifs+delta_ack+delta_tx)
+	return time
+
 
 '''def drawNetwork(nodes):
 	plt.ylim(-6,6)
@@ -364,7 +435,11 @@ if __name__ == "__main__":
 	mmw_rate=25.8
 	legacy_rate=1.0
 
-	#time unit -> micro seconds
+	#==================================
+	#	TIME DEFINITIONS
+	#
+	# time unit -> micro seconds
+	#==================================
 	time_arr = {'sswack':31/mmw_rate,
 			'ack':31/legacy_rate,
 			'ssw':26/mmw_rate,#bytes/transmission_rate
@@ -402,6 +477,12 @@ if __name__ == "__main__":
 
 	'''-------- END OF ERROR ------------'''
 
+
+	#======================================
+	#	CREATING NODES
+	#
+	# leader created at the centre of net
+	#======================================
 	lista = []
 	nodes.append(Node(0,0,20))
 	nodes[leader].Id = 0
@@ -419,30 +500,36 @@ if __name__ == "__main__":
 		#print i, nodes[i].x, nodes[i].y
 	nodes[leader].isLeader = True
 	nodes[leader].setAdj(nNodes)
-	num = 0
-	den = 0
+
+	num = 0 # Number of correct estimatives
+	den = 0 # Number of all estimatives
 
 	#drawNetwork(nodes)
 
+	#=====================================
+	#     CREATING NODES' ANGLE LIST
+	#=====================================
 	#proof = [] #list to save the correct beamforming and compare with proposed algorithm
 	for i in range(nNodes):
 		nodes[leader].angleList.append(beamformingReal(nodes,leader,i,'normal','normal', mu_d, sigma_d, mu_a, sigma_a))
 	#print nodes[leader].angleList
 
-
-	proof=[]
+	#========================================
+	#   CHECKING THE ERRORS IN ESTIMATING
+	#========================================
+	proof=[] #this array stores the correct angles
 	fair=[]
 	ang_err = 0
-	b=0
+	averageBeamError=0
 	count=0
 	for j in range(nNodes):
-		a = 0
+		hitsOnTarget = 0
 		temp = []
 		chosen = j
 		for i in range(nNodes):
+			### --------------------------------ESTIMATING ANGLES---------------------------------------
 			nodes[chosen].angleList.append(estimating(nodes,chosen, i, leader, nodes[leader].angleList))
 			temp.append(beamforming(nodes,chosen,i))
-			#print proof[i], nodes[chosen].angleList[i]
 		proof.append(temp)
 
 		template = "{0:15}"
@@ -450,39 +537,46 @@ if __name__ == "__main__":
 			den = den + 1
 			#print template.format(proof[i]),
 			#print template.format(nodes[chosen].angleList[i]),
-			if relief == 0:
+			if relief == 0: # This IF statement defines if one beam error will be considered
 				if temp[i][0] <> nodes[chosen].angleList[i][0]:
-					#===== uncomment below for log =====
+					#=========== uncomment below for log =============
+					#
 					#print chosen, i, "--->",
 					#print template.format(temp[i]),
                                 	#print template.format(nodes[chosen].angleList[i])
+					#
+					#==================================================
 					ang_err = ang_err + abs(temp[i][2] - nodes[chosen].angleList[i][2])
 					num = num + 1
-					a += 1
-				else:#count the average error when some node is rigth
-					b += abs(temp[i][2] - nodes[chosen].angleList[i][2])
+					hitsOnTarget += 1
+				else: #count the average error when some node is rigth
+					averageBeamError += abs(temp[i][2] - nodes[chosen].angleList[i][2])
 					count+=1
 			else:
 				if abs(temp[i][0] - nodes[chosen].angleList[i][0])>1:
 					if not ((temp[i][0]==0 and nodes[chosen].angleList[i][0]==nodes[chosen].nBeams-1)
 					or (temp[i][0]==nodes[chosen].nBeams-1 and nodes[chosen].angleList[i][0]==0)):
-						#===== uncomment below for log =====
+						#============ uncomment below for log ============
+						#
 						#print chosen, i, "--->",
 						#print template.format(temp[i]),
 						#print template.format(nodes[chosen].angleList[i])
+						#
+						#=================================================
 						ang_err = ang_err + abs(temp[i][2] - nodes[chosen].angleList[i][2])
 						num = num + 1
-						a +=1
+						hitsOnTarget +=1
 					else:
-						b += abs(temp[i][2] - nodes[chosen].angleList[i][2])
+						averageBeamError += abs(temp[i][2] - nodes[chosen].angleList[i][2])
 						count+=1
 
 				else:
-					b += abs(temp[i][2] - nodes[chosen].angleList[i][2])
+					averageBeamError += abs(temp[i][2] - nodes[chosen].angleList[i][2])
 					count+=1
-		fair.append(a)
+		fair.append(hitsOnTarget)
 
 	part = 0
+	print 1.0 - round(1.0*num/den,6)
 	#for i in fair: part += i**2
 	#fairness = 1.0*sum(fair)**2/(nNodes*part)
 				#print template.format(proof[i]),
@@ -490,37 +584,90 @@ if __name__ == "__main__":
 				#print "-----> ERROR sectorized2.py", leader, chosen, seed
 			#else: print "\n",'''
 
-	print "Number of wrong angles", round(1.0*num/den,6)#number of errors
+	#print "Number of wrong angles", round(1.0*num/den,6)#number of errors
+
 	#UNCOMMENT THIS LATER!!!
+	#
 	#if num <> 0: print round(1.0*ang_err/num, 6)#average erro in radians
 	#else: print 0.0
 	#print round(1.0*b/count,6)
 
 	#print round(fairness,6)
 	#fair = range(nNodes)
+
+	#===============================================
+	#     FIRST PROPOSED WORK TIME CALCULATION
+	#===============================================
 	for i in fair: fair[i]=0
 	num = 0
 	den = 0
-	t_beamforming = 2*((time_arr['ssw']*nBeams)+(time_arr['sbifs']*(nBeams-1))+(2*time_arr['sifs'])+time_arr['sswfeedback']+time_arr['sswack'])
-	overhead = (nNodes*t_beamforming)+((nNodes-1)*time_arr['sifs'])+time_arr['txNum']+time_arr['sifs']+time_arr['txMap']
+	# Time taken to beamforming with LEADER
+	t_beamforming = ((time_arr['ssw']*nBeams)+(time_arr['sbifs']*(nBeams-1))+(2*time_arr['sifs'])+time_arr['sswfeedback']+time_arr['sswack'])
+	# Time taken in OVERHEAD transmiting map and etc
+	overhead = (nNodes*2*t_beamforming)+((nNodes-1)*time_arr['sifs'])+time_arr['txNum']+time_arr['sifs']+time_arr['txMap']
 	schedule = txSched(nodes,nNodes)
 	#print schedule
 	for i in schedule:
 		overhead += time_arr['difs']+time_arr['txRts']+time_arr['sifs']+time_arr['txCts']+time_arr['sifs']
 		#print i[0], nodes[i[0]].x, nodes[i[0]].y, '|', i[1], nodes[i[1]].x,nodes[i[1]].y, nodes[i[0]].angleList[i[1]][0]
 		den += 1
-		a, time = txCheck(nodes,proof,i[0],i[1], time_arr)
+		numberOfRetrials, time = txCheck(nodes,proof,i[0],i[1], time_arr)
 		overhead += time
 		#fair[i[0]]+=a
-		num += a
+		num += numberOfRetrials
 
-	print "Average number of transmission retrials", round(1.0*num/den,6), "(due to angle missmatch)"
-	print "Number of transmissions scheduled", len(schedule)
-	print "Overhead caused by algorithm", overhead
+	#print "Average number of transmission retrials", round(1.0*num/den,6), "(due to angle missmatch)"
+	#print "Number of transmissions scheduled", len(schedule)
+	#print "Overhead caused by algorithm", overhead
 	part = 0
 	for i in fair: part += i**2
 	fairness = 1.0*sum(fair)**2/(nNodes*part)
+	#overhead is not exactly the overhead, but the time taken to run all protocol stages
+	mundimapp = overhead
+ 	print mundimapp
 
+	#================================================
+	#     SECOND PROPOSED WORK TIME CALCULATION
+	#================================================
+	# 	Calculation of overheard nodes
+	gomundi_time = (nNodes*4*t_beamforming) + (nNodes*time_arr['sifs'])+time_arr['txNum']+time_arr['sifs']
+	overheard = []
+	maximo = 0
+	for i in nodes:
+		if i.isLeader == True: continue
+		#print i.Id
+		overheard.append([])
+		#print overheard
+		if maximo < count: maximo = count
+		count = 0
+		while len(overheard[i.Id-1])<>(nNodes-1):
+			count+=1
+			for j in nodes:
+				if i.Id <> j.Id:
+					ov = overhear(i,j)
+					#print ov
+					if ov <> 1 and not j.Id in overheard[i.Id-1]: 
+						overheard[i.Id-1].append(j.Id)#count += 1
+						#print overhear(i,j)
+		#overheard.append(count)
+		#print overheard
+	#print overheard
+	#print "maximo de rodadas de overhear", maximo
+
+	#	Calculation of time to transmit in wifi band
+	cw_min = 15
+	slot = ((time_arr['difs']-time_arr['sifs'])/2)
+	slrc = 7
+	feedbackLength = 60
+	accessTime = wifiModel(cw_min, nNodes,time_arr['difs'], time_arr['sifs'],
+			     feedbackLength,time_arr['ack'], time_arr['acktimeout'], slot, slrc, legacy_rate )
+
+	gomundi_time += accessTime + time
+	print gomundi_time
+	
+	#================================================
+	#	     MDND TIME CALCULATION
+	#================================================
 	mdnd={'probereq':(1024+34+16)*8/legacy_rate,
 		'proberesp':32*8/legacy_rate,
 		'addtsreq':(1024+34+16)*8/legacy_rate,
@@ -547,23 +694,5 @@ if __name__ == "__main__":
 		mdnd_time += 2*(mdnd['chreq']+time_arr['sifs']+mdnd['chresp']+time_arr['sifs']) 
 		mdnd_time += 2*(mdnd['xchreq']+time_arr['sifs']+mdnd['xchresp']+time_arr['sifs'])
 		mdnd_time += time_arr['txData']+time_arr['sifs']+time_arr['ack']+time_arr['sifs']+mdnd['disconn']
-
-	#print mdnd_time
-	
-
-	overheard = []
-	maximo = 0
-	for i in nodes:
-		overheard.append([])
-		#print overheard
-		if maximo < count: maximo = count
-		count = 0
-		while len(overheard[i.Id])<>(nNodes-1):
-			count+=1
-			for j in nodes:
-				if i.Id <> j.Id:
-					if overhear(i,j) == 1 and not j.Id in overheard[i.Id]: overheard[i.Id].append(j.Id)#count += 1
-		#overheard.append(count)
-	
-	#print overheard
-	print "maximo de rodadas de overhear", maximo
+		mdnd_time += 4*accessTime
+	print mdnd_time
