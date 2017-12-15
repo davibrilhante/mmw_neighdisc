@@ -598,25 +598,38 @@ if __name__ == "__main__":
 	#===============================================
 	#     FIRST PROPOSED WORK TIME CALCULATION
 	#===============================================
+	#	Calculation of time to transmit in wifi band
+	cw_min = 7 
+	slot = ((time_arr['difs']-time_arr['sifs'])/2)
+	slrc = 7
+	feedbackLength = 60
+	accessTime = wifiModel(cw_min, nNodes,time_arr['difs'], time_arr['sifs'],
+			     feedbackLength,time_arr['ack'], time_arr['acktimeout'], slot, slrc, legacy_rate )
+
+
 	for i in fair: fair[i]=0
 	num = 0
 	den = 0
 	# Time taken to beamforming with LEADER
+	mundimapp = 0
 	t_beamforming = ((time_arr['ssw']*nBeams)+(time_arr['sbifs']*(nBeams-1))+(2*time_arr['sifs'])+time_arr['sswfeedback']+time_arr['sswack'])
 	# Time taken in OVERHEAD transmiting map and etc
-	overhead = (nNodes*2*t_beamforming)+((nNodes-1)*time_arr['sifs'])+time_arr['txNum']+time_arr['sifs']+time_arr['txMap']
+	overhead = ((nNodes-1)*time_arr['sifs'])+time_arr['txNum']+time_arr['sifs']+time_arr['txMap']
+	mundimapp = (nNodes*2*t_beamforming)
 	schedule = txSched(nodes,nNodes)
 	#print schedule
+	retrialTime = 0
 	for i in schedule:
-		overhead += time_arr['difs']+time_arr['txRts']+time_arr['sifs']+time_arr['txCts']+time_arr['sifs']
+		overhead += time_arr['difs']+time_arr['sifs']+time_arr['txCts']+time_arr['sifs'] #+time_arr['txRts']
 		#print i[0], nodes[i[0]].x, nodes[i[0]].y, '|', i[1], nodes[i[1]].x,nodes[i[1]].y, nodes[i[0]].angleList[i[1]][0]
 		den += 1
 		numberOfRetrials, time = txCheck(nodes,proof,i[0],i[1], time_arr)
-		overhead += time
+		#overhead += time
+		retrialTime += time
 		#fair[i[0]]+=a
 		num += numberOfRetrials
-		overhead += time_arr['txData']
-
+		overhead += 4*time_arr['txData'] + time_arr['sswack']
+	overhead += accessTime
 	#print "Average number of transmission retrials", round(1.0*num/den,6), "(due to angle missmatch)"
 	#print "Number of transmissions scheduled", len(schedule)
 	#print "Overhead caused by algorithm", overhead
@@ -624,9 +637,10 @@ if __name__ == "__main__":
 	for i in fair: part += i**2
 	fairness = 1.0*sum(fair)**2/(nNodes*part)'''
 	#overhead is not exactly the overhead, but the time taken to run all protocol stages
-	mundimapp = overhead
+	mundimapp += overhead + retrialTime
  	print mundimapp
-
+	#print retrialTime/mundimapp, (nNodes*2*t_beamforming)/mundimapp, overhead/mundimapp
+	#print (retrialTime/mundimapp) + ((nNodes*2*t_beamforming)/mundimapp) + (overhead/mundimapp)
 	#================================================
 	#     SECOND PROPOSED WORK TIME CALCULATION
 	#================================================
@@ -655,16 +669,10 @@ if __name__ == "__main__":
 	#print overheard
 	#print "maximo de rodadas de overhear", maximo
 
-	#	Calculation of time to transmit in wifi band
-	cw_min = 7 
-	slot = ((time_arr['difs']-time_arr['sifs'])/2)
-	slrc = 7
-	feedbackLength = 60
-	accessTime = wifiModel(cw_min, nNodes,time_arr['difs'], time_arr['sifs'],
-			     feedbackLength,time_arr['ack'], time_arr['acktimeout'], slot, slrc, legacy_rate )
 
 	gomundi_time += accessTime + time_arr['difs']
-	gomundi_time += ((2*time_arr['sifs'])+(2*time_arr['mmwsifs'])+((2*1074)/mmw_rate)+time_arr['sswack'])#+ time
+	gomundi_time += nNodes*(nNodes-1)*(time_arr['txCts']+(2*time_arr['sifs'])) + accessTime
+	gomundi_time += ((5*time_arr['mmwsifs'])+((4*1074)/mmw_rate)+time_arr['sswack']+time_arr['txData'])*nNodes*(nNodes-1)
 	print gomundi_time
 	
 	#================================================
@@ -696,5 +704,6 @@ if __name__ == "__main__":
 		mdnd_time += 2*(mdnd['chreq']+time_arr['sifs']+mdnd['chresp']+time_arr['sifs']) 
 		mdnd_time += 2*(mdnd['xchreq']+time_arr['sifs']+mdnd['xchresp']+time_arr['sifs'])
 		mdnd_time += time_arr['txData']+time_arr['sifs']+time_arr['ack']+time_arr['sifs']+mdnd['disconn']
-		mdnd_time += 4*accessTime
+	#mdnd_time += 4*accessTime
 	print mdnd_time
+	#print len(schedule)
