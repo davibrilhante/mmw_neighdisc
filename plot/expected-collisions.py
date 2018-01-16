@@ -45,8 +45,8 @@ for w in cw_min:
 			backoff += (((2**a)*w)-1.0)*slot/2
 
 		time = delta_difs + backoff + (math.ceil(cumul)+1)*(delta_sifs+delta_ack+delta_tx)
-		#time = time*(n-2)*(n-1)
-		tx_time.append(time/1e6)
+		time = time*(n-2)*(n-1)
+		#tx_time.append(time/1e6)
 
 		for a in range(1,n):
 			cumul = 0
@@ -74,7 +74,7 @@ for w in cw_min:
 				backoff += (((2**a)*w)-1.0)*slot/2
 
 			time += delta_difs + backoff + (math.ceil(cumul)+1)*(delta_sifs+delta_ack+delta_tx)
-		#tx_time.append(time/1e6)
+		tx_time.append(time/1e6)
 
 	plt.subplot(2,1,1)
 	if w == 8: plt.plot(nNodes,plotter, 'b', label='CW$_{min}$=8')

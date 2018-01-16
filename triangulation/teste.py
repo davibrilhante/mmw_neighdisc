@@ -173,7 +173,7 @@ if __name__ == "__main__":
 	i = Node(0,0,10)#[0,0]
 	j = Node(3,3,10)
 	i.setBeams(3)
-	j.setBeams(8)
+	j.setBeams(32)
 	r = math.hypot(i.x-j.x, i.y-j.y)
         #Here starts an algorithm to detect an intersection betwen beams
         #The instersection of projections:
@@ -186,6 +186,7 @@ if __name__ == "__main__":
 	print projectionsI
 	print projectionsJ
 	array = intersections(i,j,r,r)#(projectionsI, projectionsJ)
+	print array
 	p=[]
 	for m in range(i.nBeams):
 		count = 0
@@ -199,5 +200,10 @@ if __name__ == "__main__":
 
 	print p
 	P = p[0]+p[1]+p[2]
+	K = int(1.0/P)
+	print K
+	P = K*P
 	choice = [1]*int(P*100) + [0]*int((1-P)*100)
+	random.shuffle(choice)
+	print choice
 	print random.choice(choice)#VER NUMPY
