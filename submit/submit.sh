@@ -19,9 +19,9 @@ WAF_COMMAND="./waf --run"
 SCRIPT_COMMAND="python ../triangulation/triangulation_sector.py"
 
 #N_BEAMS=(4 8 16 32)
-NNODES=`seq -f%02.f 10 10 50`
+NNODES=`seq -f%02.f 20 20 60`
 
-BEAMS=(4 8 16 32)
+BEAMS=(8 16 32)
 
 MEAND=(0 2 5) #`seq 0 1 5` #(-1 0 0.75 1.5 2.25 3) #`seq 0 0.75 3`  #(-1 0 0.4 0.8 1.2 1.6) #`seq 0 0.4 1.6`
 MEANA=`seq 0 1 4` #(-1 0 45 90 135 180) #`seq 0 45 180` #(-1 0 5 10 15 20) #`seq 0 5 20`

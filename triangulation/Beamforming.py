@@ -50,7 +50,9 @@ def beamformingReal(nodes, i, j, varD, varA, meand, devd, meana, deva):
         angle = math.atan2(nodes[i].y-nodes[j].y, nodes[i].x-nodes[j].x) + pi + math.radians(erro)
 
         if angle == 2*pi: angle = 0
-        beam = int(round(angle/nodes[i].beamwidth,1))
+        if angle > 2*pi: angle = angle - 2*pi
+        #beam = int(round(angle/nodes[i].beamwidth,1))
+        beam = int(angle/nodes[i].beamwidth)
         #return [beam,dist,round(angle,5)]
         return [beam,dist,angle]
 

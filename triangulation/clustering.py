@@ -40,17 +40,18 @@ def headElection(nodes, nNodes, cluster):
 	
 def clusterFormation(nodes, nNodes, nClusters, leader):
 	coord = []
-	lim = 2.0*pi/nClusters #int(nodes[leader].nBeams/nClusters)
+	lim = int(nodes[leader].nBeams/nClusters)#2.0*pi/nClusters #int(nodes[leader].nBeams/nClusters)
 	for i in range(nClusters):
 		coord.append([])
 	count = 0
 	for i in nodes[leader].angleList:
+		#print lim, i[0], math.degrees(i[2]), int(i[0]/lim)
 		#print count
 		if i == [0,0,0]: 
 			coord[0].append(leader)
 		else:
 			#coord.append([math.cos(i[2])*i[1], math.sin(i[2])*i[1]])
-			coord[int(i[2]/lim)].append(count)
+			coord[int(i[0]/lim)].append(count)
 		count += 1
 	#print coord
 	heads = []
@@ -59,7 +60,38 @@ def clusterFormation(nodes, nNodes, nClusters, leader):
 		
 	coord.append(heads)
 	return coord
-			
+
+def anotherClusterFormation(nodes, nNodes, nClusters, leader):
+	clusters = []
+	copy = []
+	matrix = []
+	lim = int(nNodes/nClusters)
+	for i in range(nClusters): clusters.append([])
+	for i in range(nNodes): 
+		copy.append(i)
+		matrix.append([])
+	#every cluster will have the same length
+	for i in range(nNodes):
+		for j in range(nNodes):
+			if i == j:
+				pass
+			else:
+				ix = math.cos(nodes[leader].angleList[i][2])*nodes[leader].angleList[i][1]
+				iy = math.sin(nodes[leader].angleList[i][2])*nodes[leader].angleList[i][1]
+				jx = math.cos(nodes[leader].angleList[j][2])*nodes[leader].angleList[j][1]
+				jy = math.sin(nodes[leader].angleList[j][2])*nodes[leader].angleList[j][1]
+				matrix.append(math.hypot(abs(ix-jx),abs(iy-jy)))
+	for i in matrix:
+		clustered = False
+		while clustered == False:
+			ideal = i.index(min(i))
+			for j in clusters:
+				if j.count(ideal)<>0 and len(j)<lim:
+					j.append(i)
+					clustered = True
+					break
+			if clustered == False:
+				i.pop(ideal)
 if __name__ == "__main__":
 	latitude = 10
 	longitude = 10
@@ -72,7 +104,7 @@ if __name__ == "__main__":
 	relief = int(sys.argv[5])
 	seed = int(sys.argv[6])
 	leader = 0
-
+	random.seed(seed)
 
 
 	nodes = Nodes.createNet(latitude, longitude, sense, nNodes, nBeams,leader)
@@ -117,7 +149,7 @@ if __name__ == "__main__":
 						'normal','normal', mu_d, sigma_d,mu_a, sigma_a))
 	proof = []
 	erros = Beamforming.mapCheck(nodes, nNodes, leader, relief, proof)
-	print erros
+	print erros[0]*1.0/erros[1]
 
 
 
@@ -164,12 +196,18 @@ if __name__ == "__main__":
 	count = 0
 	#FULLFILING ANGLELIST WITH BEAMFORMING AMONG HEADS AND CLUSTER MEMBERS
 	for i in clusters[nClusters]:
-		for j in clusters[count]:
-			nodes[i].angleList[j] = Beamforming.beamformingReal(nodes,i,j,
-                                                'normal','normal', mu_d, sigma_d,mu_a, sigma_a)
-		for j in clusters[nClusters]:
-			nodes[i].angleList[j] = Beamforming.beamformingReal(nodes,i,j,
-                                                'normal','normal', mu_d, sigma_d,mu_a, sigma_a)
+		if i == None:
+			pass
+		else:
+			for j in clusters[count]:
+				nodes[i].angleList[j] = Beamforming.beamformingReal(nodes,i,j,
+							'normal','normal', mu_d, sigma_d,mu_a, sigma_a)
+			for j in clusters[nClusters]:
+				if j == None:
+					pass
+				else:
+					nodes[i].angleList[j] = Beamforming.beamformingReal(nodes,i,j,
+							'normal','normal', mu_d, sigma_d,mu_a, sigma_a)
 		count+=1
 		#print nodes[i].angleList
 
@@ -178,7 +216,7 @@ if __name__ == "__main__":
 		for j in clusters[nClusters]:
 			'''nodes[i].angleList[j] = Beamforming.beamformingReal(nodes,i,j,
                                                 'normal','normal', mu_d, sigma_d,mu_a, sigma_a)'''
-			if j <> i:
+			if j <> i and j <> None and i<> None:
 				count = 0
 				while clusters[count].count(j)==0: count+=1
 				for n in clusters[count]:
@@ -215,13 +253,14 @@ if __name__ == "__main__":
 					erro+=1
 				elif relief == 1 and (temp[0]<>nodes[i].angleList[j][0]+1 or temp[0]<>nodes[i].angleList[j][0]-1):
 					erro+=1
-	print erro
+	print erro*1.0/erros[1]
 	
 	maxCluster = len(clusters[0])
 	for i in range(nClusters):
 		test = len(clusters[i])
 		if test > maxCluster: maxCluster = test
 
+	maxCluster = int(nNodes/nClusters)
 	overhead = t_beamforming*(maxCluster*2 + nClusters*2)
 	overhead += time_arr['sifs']+ time_arr['txNum']+time_arr['sifs'] +time_arr['txMap']*nClusters
 	
