@@ -61,15 +61,71 @@ def clusterFormation(nodes, nNodes, nClusters, leader):
 	coord.append(heads)
 	return coord
 
+
+def quicksort(array, arrayMap, first, last):
+	if len(array) <> len(arrayMap):
+		print "Array length does not Match"
+		return -1
+	
+	if first < last:
+		splitpoint = partition(array, arrayMap, first, last)
+		quicksort(array, arrayMap, first, splitpoint-1)
+		quicksort(array, arrayMap, splitpoint+1, last)
+
+def partition(array, arrayMap, first, last):
+	pivot = array[first]
+	pivotMap = arrayMap[first]
+
+	leftmark = first+1
+	rightmark = last
+	done = False
+	while not done:
+		while leftmark <= rightmark and array[leftmark] <= pivot:
+			leftmark += 1
+		while rightmark >= leftmark and array[rightmark] >= pivot:
+			rightmark -= 1
+		if rightmark < leftmark:
+			done = True
+		else:
+           		temp = array[leftmark]
+           		array[leftmark] = array[rightmark]
+           		array[rightmark] = temp
+			temp = arrayMap[leftmark]
+			arrayMap[leftmark] = arrayMap[rightmark]
+			arrayMap[rightmark] = temp
+
+	temp = pivot
+	array[first] = array[rightmark]
+	arrayMap[first]=arrayMap[rightmark]
+	array[rightmark] = temp
+	arrayMap[rightmark] = pivotMap
+
+	return rightmark
+
+
+def mean(array):
+	mean = 0
+	for i in array:
+		mean += i
+	mean = mean/len(array)
+
+def median(data):
+    new_list = sorted(data)
+    if len(new_list)%2 > 0:
+        return new_list[len(new_list)/2]
+    elif len(new_list)%2 == 0:
+        return (new_list[(len(new_list)/2)] + new_list[(len(new_list)/2)-1]) /2.0
+
 def anotherClusterFormation(nodes, nNodes, nClusters, leader):
 	clusters = []
-	copy = []
+	heads = []
+	distMap = []
 	matrix = []
 	lim = int(nNodes/nClusters)
 	for i in range(nClusters): clusters.append([])
-	for i in range(nNodes): 
-		copy.append(i)
-		matrix.append([])
+	#for i in range(nNodes): 
+	#	copy.append(i)
+	#	matrix.append([])
 	#every cluster will have the same length
 	for i in range(nNodes):
 		for j in range(nNodes):
@@ -81,17 +137,80 @@ def anotherClusterFormation(nodes, nNodes, nClusters, leader):
 				jx = math.cos(nodes[leader].angleList[j][2])*nodes[leader].angleList[j][1]
 				jy = math.sin(nodes[leader].angleList[j][2])*nodes[leader].angleList[j][1]
 				matrix.append(math.hypot(abs(ix-jx),abs(iy-jy)))
-	for i in matrix:
-		clustered = False
-		while clustered == False:
-			ideal = i.index(min(i))
-			for j in clusters:
-				if j.count(ideal)<>0 and len(j)<lim:
-					j.append(i)
-					clustered = True
-					break
-			if clustered == False:
-				i.pop(ideal)
+				distMap.append([i,j])
+	#print matrix, distMap
+	quicksort(matrix, distMap, 0, len(matrix)-1)
+	#print distMap 
+	cut = median(matrix)
+	mins = []
+	for i in range(nNodes):
+		count = 0
+		for j in distMap:
+			if j[0] == i:
+				count += distMap.index(j)
+		mins.append(count)
+	#print mins
+	count = 0
+	while len(heads)<>nClusters:
+		att = min(mins)
+		heads.append(mins.index(att))
+		#mins.remove(att)
+		mins[mins.index(att)]=1e9
+		#count+=1
+	#print clusters 
+	clusters.append(heads)
+	#print clusters
+	for i in range(lim):
+		for j in heads:#clusters:
+			for k in distMap:
+				check = 0
+				if j==k[0] and len(clusters[heads.index(j)])<=lim:
+					for l in clusters: 
+						if l.count(k[1])<>0:
+							check+=1
+					if check==0:
+						clusters[heads.index(j)].append(k[1])
+						break
+	#print clusters
+	return clusters
+
+
+def wifiModel(nNodes, slrc, cwMin,cwMax, tAck, tSifs, tDifs, timeOut, tSlot, tData):
+	#expected time to one node transmit between nNodes contending for the medium
+        tau = 0
+        expectedR = 0
+        for m in range(1,slrc):
+                collisions = 1
+                for k in range(m-1):
+                        if ((2.0**k)*cwMin) <= cwMax:
+                                tau = 2.0/((2.0**k)*cwMin+1)
+                        else:
+                                tau = 2.0/(cwMax + 1)
+                        num = nNodes*tau*(1.0 -tau)**(nNodes-1)
+                        den = 1.0 - (1.0 -tau)**nNodes
+                        collisions = collisions*(1.0 - num/den)
+
+                if ((2.0**m)*cwMin) <= cwMax:
+                        tau = 2.0/((2.0**(m-1))*cwMin+1)
+                else:
+                        tau = 2.0/(cwMax +1)
+                num = tau*(1-tau)**(nNodes-1)
+                den = 1 - (1 - tau)**nNodes
+                expectedR += nNodes*(num/den)*collisions*m
+
+        r = int(math.ceil(expectedR))
+        txTime = 0
+        for i in range(r):
+                #txTime += ((2**i)*cwMin/2)*tSlot
+                txTime += (1.0/((2**i)*cwMin))*tSlot
+
+        #txTime += tDifs + (r)*(tSifs+tData) + ((r-1)*timeOut) + (tSifs+tAck)
+        txTime += tDifs + (r+1)*(tSifs+tData+tAck)
+
+        return txTime, r
+
+
+		
 if __name__ == "__main__":
 	latitude = 10
 	longitude = 10
@@ -149,7 +268,7 @@ if __name__ == "__main__":
 						'normal','normal', mu_d, sigma_d,mu_a, sigma_a))
 	proof = []
 	erros = Beamforming.mapCheck(nodes, nNodes, leader, relief, proof)
-	print erros[0]*1.0/erros[1]
+	#print erros[0]*1.0/erros[1]
 
 
 
@@ -157,9 +276,11 @@ if __name__ == "__main__":
 	den = 0
         t_beamforming = ((time_arr['ssw']*nBeams)+(time_arr['sbifs']*(nBeams-1))+(2*time_arr['sifs'])+time_arr['sswfeedback']+time_arr['sswack'])
         # Time taken in OVERHEAD transmiting map and etc
-        overhead = (nNodes*2*t_beamforming)+((nNodes-1)*time_arr['sifs'])+time_arr['txNum']+time_arr['sifs']+time_arr['txMap']
+        bf_mdnd = (nNodes*2*t_beamforming)+((nNodes-1)*time_arr['sifs'])
+	ctrl_mdnd = time_arr['txNum']+time_arr['sifs']+time_arr['txMap']
         schedule = scheduler.txSched(nodes,nNodes)
         #print schedule
+	overhead = 0
         for i in schedule:
                 overhead += time_arr['difs']+time_arr['txRts']+time_arr['sifs']+time_arr['txCts']+time_arr['sifs']
                 #print i[0], nodes[i[0]].x, nodes[i[0]].y, '|', i[1], nodes[i[1]].x,nodes[i[1]].y, nodes[i[0]].angleList[i[1]][0]
@@ -174,7 +295,10 @@ if __name__ == "__main__":
         #print "Overhead caused by algorithm", overhead
         #overhead is not exactly the overhead, but the time taken to run all protocol stages
         mundimapp = overhead
-        print mundimapp/1e6
+        #print mundimapp/1e6
+	print overhead/1e6
+	print bf_mdnd/1e6
+	print ctrl_mdnd/1e6
 
 
 
@@ -185,7 +309,9 @@ if __name__ == "__main__":
 	#
 	##################################################
 	nClusters = 4
-	clusters = clusterFormation(nodes,nNodes,nClusters,leader)
+	#clusters = clusterFormation(nodes,nNodes,nClusters,leader)
+	#print clusters
+	clusters = anotherClusterFormation(nodes,nNodes,nClusters,leader)
 	#print clusters
 
 	#CLEANING ANGLE LIST
@@ -217,8 +343,9 @@ if __name__ == "__main__":
 			'''nodes[i].angleList[j] = Beamforming.beamformingReal(nodes,i,j,
                                                 'normal','normal', mu_d, sigma_d,mu_a, sigma_a)'''
 			if j <> i and j <> None and i<> None:
-				count = 0
-				while clusters[count].count(j)==0: count+=1
+				#count = 0
+				count = clusters[nClusters].index(j)
+				#while clusters[count].count(j)==0: count+=1
 				for n in clusters[count]:
 					#print n, i, j
 					#print nodes[j].angleList[i]
@@ -253,17 +380,42 @@ if __name__ == "__main__":
 					erro+=1
 				elif relief == 1 and (temp[0]<>nodes[i].angleList[j][0]+1 or temp[0]<>nodes[i].angleList[j][0]-1):
 					erro+=1
-	print erro*1.0/erros[1]
+	#print erro*1.0/erros[1]
 	
 	maxCluster = len(clusters[0])
 	for i in range(nClusters):
 		test = len(clusters[i])
 		if test > maxCluster: maxCluster = test
 
+	#print maxCluster
+
+	time = 0
+	r = 0
+	s = 1024
+	txRate = 6
+	cwMin = 7
+	#cwMax = 4095
+	slrc = int(math.log(1.0*s, 2) - math.log(1.0*cwMin, 2))
+	tAck =  40.6901 ### 32.0*8.0/txRate
+	tSifs = 10
+	tSlot = 9
+	tDifs = (2*tSlot) + tSifs
+	timeOut = 75
+	tData = 76.2939# us  ###60*8.0/txRate
+	time, r = wifiModel(n, slrc, cwMin,s, tAck, tSifs, tDifs, timeOut, tSlot, tData)
+	totalTime = 0
+	transient = 0
+	a = 0
+	time,r = wifiModel(nClusters, slrc, cwMin,s, tAck, tSifs, tDifs, timeOut, tSlot, tData)
+	map_cluster = time*(maxCluster-1)
+	for i in range(1,nClusters):
+		transient, r = wifiModel(nClusters, slrc, cwMin,s, tAck, tSifs, tDifs, timeOut, tSlot, tData)	
+		map_cluster += transient
+	map_cluster += (nClusters - 1)*time_arr['sifs']
 	maxCluster = int(nNodes/nClusters)
-	overhead = t_beamforming*(maxCluster*2 + nClusters*2)
-	overhead += time_arr['sifs']+ time_arr['txNum']+time_arr['sifs'] +time_arr['txMap']*nClusters
-	
+	bf_cluster = t_beamforming*(maxCluster*2 + nClusters*2)
+	ctrl_cluster = time_arr['sifs']+ time_arr['txNum']+time_arr['sifs'] #+time_arr['txMap']*nClusters
+	overhead = 0
 	for i in schedule:
 		overhead += time_arr['difs']+time_arr['txRts']+time_arr['sifs']+time_arr['txCts']+time_arr['sifs']
                 den += 1
@@ -271,3 +423,8 @@ if __name__ == "__main__":
                 overhead += time
                 num += numberOfRetrials
 	print overhead/1e6
+	print bf_cluster/1e6
+	print ctrl_cluster/1e6
+	print map_cluster/1e6
+	print overhead/len(schedule)/1e6
+	
