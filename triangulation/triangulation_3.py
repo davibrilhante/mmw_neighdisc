@@ -604,8 +604,10 @@ if __name__ == "__main__":
 	# Time taken to beamforming with LEADER
 	t_beamforming = ((time_arr['ssw']*nBeams)+(time_arr['sbifs']*(nBeams-1))+(2*time_arr['sifs'])+time_arr['sswfeedback']+time_arr['sswack'])
 	# Time taken in OVERHEAD transmiting map and etc
-	overhead = (nNodes*2*t_beamforming)+((nNodes-1)*time_arr['sifs'])+time_arr['txNum']+time_arr['sifs']+time_arr['txMap']
+	bf_mundi = (nNodes*2*t_beamforming)+((nNodes-1)*time_arr['sifs'])
+	ctrl_mundi = time_arr['txNum']+(nNodes-1)*(time_arr['sifs']+time_arr['txMap'])
 	schedule = txSched(nodes,nNodes)
+	overhead = 0
 	#print schedule
 	for i in schedule:
 		overhead += time_arr['difs']+time_arr['txRts']+time_arr['sifs']+time_arr['txCts']+time_arr['sifs']
@@ -624,13 +626,19 @@ if __name__ == "__main__":
 	fairness = 1.0*sum(fair)**2/(nNodes*part)
 	#overhead is not exactly the overhead, but the time taken to run all protocol stages
 	mundimapp = overhead
- 	print mundimapp
+ 	#print mundimapp
+        print overhead/1e6
+        print bf_mundi/1e6
+        print ctrl_mundi/1e6
+        print overhead/1e6 + bf_mundi/1e6 + ctrl_mundi/1e6
+
 
 	#================================================
 	#     SECOND PROPOSED WORK TIME CALCULATION
 	#================================================
 	# 	Calculation of overheard nodes
-	gomundi_time = (nNodes*4*t_beamforming) + (nNodes*time_arr['sifs'])+time_arr['txNum']+time_arr['sifs']
+	bf_go = (nNodes*4*t_beamforming) + (nNodes*time_arr['sifs'])
+	ctrl_go = time_arr['txNum']+time_arr['sifs']
 	overheard = []
 	maximo = 0
 	for i in nodes:
@@ -662,8 +670,8 @@ if __name__ == "__main__":
 	accessTime = wifiModel(cw_min, nNodes,time_arr['difs'], time_arr['sifs'],
 			     feedbackLength,time_arr['ack'], time_arr['acktimeout'], slot, slrc, legacy_rate )
 
-	gomundi_time += accessTime + time
-	print gomundi_time
+	gomundi_time = accessTime + time
+	print (gomundi_time+bf_go+ctrl_go)/1e6
 	
 	#================================================
 	#	     MDND TIME CALCULATION
@@ -695,4 +703,4 @@ if __name__ == "__main__":
 		mdnd_time += 2*(mdnd['xchreq']+time_arr['sifs']+mdnd['xchresp']+time_arr['sifs'])
 		mdnd_time += time_arr['txData']+time_arr['sifs']+time_arr['ack']+time_arr['sifs']+mdnd['disconn']
 		mdnd_time += 4*accessTime
-	print mdnd_time
+	print mdnd_time/1e6

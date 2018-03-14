@@ -42,7 +42,9 @@ class Node:
                         self.sideLobeGain = math.log10((2*pi - self.nBeams)/self.nBeams)*gain_omni
 
 
-
+	def setRelay(self):
+		self.relays = []
+		
 
 
 def createNet(latitude, longitude, sense, nNodes, nBeams,leader):
@@ -66,3 +68,28 @@ def createNet(latitude, longitude, sense, nNodes, nBeams,leader):
         nodes[leader].setAdj(nNodes)
 
 	return nodes
+
+
+def setRelays(node, nNodes):
+	node.setRelay()
+	for i in range(nNodes):
+		if node.Id == i: node.relays.append(None)
+		else:
+			#No pior caso o lider eh o relay
+			relay = 0
+			minDist = abs(node.angleList[i][1] - node.angleList[0][1])
+			for j in range(1,nNodes):
+				if i <> j:
+					# Testa a distancia e o angulo
+					testDist = abs(node.angleList[i][1] - node.angleList[j][1])
+					testAngle= abs(node.angleList[i][2] - node.angleList[j][2])
+					#Se a distancia for menor e os nos estiverem no mesmo quadrante
+					#o relay eh eleito
+					if testDist < minDist and (testAngle < (pi/2.0) and testAngle > (pi/6.0)):
+						relay = j
+			if relay == node.Id:
+				relay = 0
+			#Os relays vao sendo atribuidos em ordem de Id
+			node.relays.append(relay)
+				
+			

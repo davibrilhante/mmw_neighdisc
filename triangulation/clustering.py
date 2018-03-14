@@ -277,7 +277,7 @@ if __name__ == "__main__":
         t_beamforming = ((time_arr['ssw']*nBeams)+(time_arr['sbifs']*(nBeams-1))+(2*time_arr['sifs'])+time_arr['sswfeedback']+time_arr['sswack'])
         # Time taken in OVERHEAD transmiting map and etc
         bf_mdnd = (nNodes*2*t_beamforming)+((nNodes-1)*time_arr['sifs'])
-	ctrl_mdnd = time_arr['txNum']+time_arr['sifs']+time_arr['txMap']
+	ctrl_mdnd = time_arr['txNum']+(nNodes-1)*(time_arr['sifs']+time_arr['txMap'])
         schedule = scheduler.txSched(nodes,nNodes)
         #print schedule
 	overhead = 0
@@ -299,7 +299,7 @@ if __name__ == "__main__":
 	print overhead/1e6
 	print bf_mdnd/1e6
 	print ctrl_mdnd/1e6
-
+	print overhead/1e6 + bf_mdnd/1e6 + ctrl_mdnd/1e6
 
 
 
@@ -308,7 +308,7 @@ if __name__ == "__main__":
 	#		CLUSTER PROTOCOL
 	#
 	##################################################
-	nClusters = 4
+	nClusters = 3#4
 	#clusters = clusterFormation(nodes,nNodes,nClusters,leader)
 	#print clusters
 	clusters = anotherClusterFormation(nodes,nNodes,nClusters,leader)
@@ -406,12 +406,14 @@ if __name__ == "__main__":
 	totalTime = 0
 	transient = 0
 	a = 0
-	time,r = wifiModel(nClusters, slrc, cwMin,s, tAck, tSifs, tDifs, timeOut, tSlot, tData)
-	map_cluster = time*(maxCluster-1)
-	for i in range(1,nClusters):
+	#time,r = wifiModel(nClusters, slrc, cwMin,s, tAck, tSifs, tDifs, timeOut, tSlot, tData)
+	time,r = wifiModel((nNodes/nClusters), slrc, cwMin,s, tAck, tSifs, tDifs, timeOut, tSlot, tData)
+	map_cluster = time*(nNodes/nClusters - 1)#(maxCluster-1)
+	'''for i in range(1,nClusters):
 		transient, r = wifiModel(nClusters, slrc, cwMin,s, tAck, tSifs, tDifs, timeOut, tSlot, tData)	
-		map_cluster += transient
-	map_cluster += (nClusters - 1)*time_arr['sifs']
+		map_cluster += transient'''
+	#map_cluster += (nClusters - 1)*time_arr['sifs']
+	map_cluster += (nNodes/nClusters - 1)*time_arr['sifs']
 	maxCluster = int(nNodes/nClusters)
 	bf_cluster = t_beamforming*(maxCluster*2 + nClusters*2)
 	ctrl_cluster = time_arr['sifs']+ time_arr['txNum']+time_arr['sifs'] #+time_arr['txMap']*nClusters
@@ -426,5 +428,5 @@ if __name__ == "__main__":
 	print bf_cluster/1e6
 	print ctrl_cluster/1e6
 	print map_cluster/1e6
-	print overhead/len(schedule)/1e6
-	
+	print overhead/1e6 + bf_cluster/1e6 + ctrl_cluster/1e6 + map_cluster/1e6 #overhead/len(schedule)/1e6
+	print len(schedule)
