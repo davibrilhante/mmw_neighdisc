@@ -6,22 +6,22 @@ from time import sleep
 pi = math.pi
 
 
-def txSched(nodes,nNodes):
+def txSched(nodes,nNodes,rate):
         total = (nNodes-1)*(nNodes-2)
         #ntx = random.randint(total/2,total-1)
         transmissions = []
         #for i in range(total): transmissions.append([])
         seq = []
         for i in range(1,nNodes): seq.append(i)
-
+	random.shuffle(seq)
         for x in seq:
                 for j in range(nNodes-2):
                         y=random.choice(seq)
                         while x == y or  transmissions.count([x,y])!=0:
                                 #x = random.choice(seq)
                                 y = random.choice(seq)
-
-                        transmissions.append([x,y])
+			npkts = math.ceil(random.expovariate(1.0/rate))
+                        transmissions.append([x,y,npkts])
 
         random.shuffle(transmissions)
         return transmissions
