@@ -44,7 +44,8 @@ for t in T:
 		parcel1 = (dj + erro*dj)**2
 		parcel2 = ((di - erro*di)**2)/(((t+C2)**2)*C1**2)
 		summ = parcel1 - parcel2
-		result = di*C1/(2*dj)*summ
+		result = di*C1/(2*dj)*summ ### VERSAO ATE 15/04
+		result = C1/(8*dj*dj*(erro**2))*summ
 		pdf.append(result)
 		
 		parcel2 = ((di - erro*di)**2)/((t+C2)*C1**2)
@@ -56,7 +57,8 @@ for t in T:
 		parcel1 = ((di + erro*di)**2)/(((t+C2)**2)*C1**2)
 		parcel2 = (dj - erro*dj)**2
 		summ = parcel1 - parcel2
-		result = di*C1/(2*dj)*summ
+		result = di*C1/(2*dj)*summ ### VERSAO ATE 15/03
+		result = C1/(8*dj*dj*(erro**2))*summ
 		pdf.append(result)
 
 		parcel1 = ((di + erro*di)**2)/((t+C2)*C1**2)
