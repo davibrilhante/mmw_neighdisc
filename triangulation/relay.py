@@ -220,8 +220,8 @@ if __name__ == "__main__":
 
 	nNodes = int(sys.argv[1])
 	nBeams = int(sys.argv[2])
-	relief = int(sys.argv[5])
-	seed = int(sys.argv[6])
+	relief = int(sys.argv[6])
+	seed = int(sys.argv[7])
 	leader = 0
 	random.seed(seed)
 
@@ -248,8 +248,8 @@ if __name__ == "__main__":
 
 
         '''-------- PREPARING ERROR ---------'''
-        indexd = int(sys.argv[3])
-        indexa = int(sys.argv[4])
+        indexd = 2#int(sys.argv[3])
+        indexa = 2#int(sys.argv[4])
 
         #==== DEFINING ARRAYS ====#
         meand = [-1, 0.1,0.2,0.3,0.4,0.5,0.6]
@@ -276,14 +276,15 @@ if __name__ == "__main__":
 
 	num = 0
 	den = 0
-	nPeople = int(sys.argv[7])
+	nPeople = int(sys.argv[3])
+	vPeople = float(sys.argv[4]) #meters per second
+	rate = float(sys.argv[5])
 	peopleArr = scheduler.peopleOrigin(nPeople, latitude, longitude)
-	vPeople = 3 #meters per second
         t_beamforming = ((time_arr['ssw']*nBeams)+(time_arr['sbifs']*(nBeams-1))+(2*time_arr['sifs'])+time_arr['sswfeedback']+time_arr['sswack'])
         # Time taken in OVERHEAD transmiting map and etc
         bf_mundi = (nNodes*2*t_beamforming)+((nNodes-1)*time_arr['sifs'])
 	ctrl_mundi = time_arr['txNum']+(nNodes-1)*(time_arr['sifs']+time_arr['txMap'])
-        schedule = scheduler.txSched(nodes,nNodes)
+        schedule = scheduler.txSched(nodes,nNodes,rate)
         #print schedule
 	Time = 0
 	overhead = 0
@@ -293,19 +294,20 @@ if __name__ == "__main__":
 	transmited = 0
 	discarded = 0
         for i in schedule:
-                overhead += time_arr['difs']+time_arr['txRts']+time_arr['sifs']+time_arr['txCts']+time_arr['sifs']
-                den += 1
-                #numberOfRetrials, time = scheduler.txCheck(nodes,proof,i[0],i[1], time_arr, relief)
-                numberOfRetrials, timea, time, timeb, timeR, check = scheduler.relayCheck(peopleArr, vPeople, nodes, proof, i[0], i[1], time_arr, relief, overhead/1e6, latitude, longitude)
-                overhead += time + timea + timeb + timeR
-		#Time += time + timea + timeb + timeR
-		blocked += timeb
-		retrying += time
-		relayed += timeR
-		transmited += timea 
-                #fair[i[0]]+=a
-                num += numberOfRetrials
-		if check == False: discarded += 1
+		for j in range(int(i[2])):
+			overhead += time_arr['difs']+time_arr['txRts']+time_arr['sifs']+time_arr['txCts']+time_arr['sifs']
+			den += 1
+			#numberOfRetrials, time = scheduler.txCheck(nodes,proof,i[0],i[1], time_arr, relief)
+			numberOfRetrials, timea, time, timeb, timeR, check = scheduler.relayCheck(peopleArr, vPeople, nodes, proof, i[0], i[1], time_arr, relief, overhead/1e6, latitude, longitude)
+			overhead += time + timea + timeb + timeR
+			#Time += time + timea + timeb + timeR
+			blocked += timeb
+			retrying += time
+			relayed += timeR
+			transmited += timea 
+			#fair[i[0]]+=a
+			num += numberOfRetrials
+			if check == False: discarded += 1
 
         #print "Average number of transmission retrials", round(1.0*num/den,6), "(due to angle missmatch)"
         #print "Number of transmissions scheduled", len(schedule)
