@@ -27,8 +27,21 @@ def txSched(nodes,nNodes,rate):
         return transmissions
 
 
-
-
+def genTraffic(nodes, nNodes, rate, time):
+	#Any node can transmit or receive with uniform probability
+	#The packet arrival follows a poisson distribution
+	#The number of packets is a standard normal distribution
+	simTime = 0
+	schedule = []
+	while simTime <= time:
+		simTime += random.expovariate(1.0/rate)
+		npkts = int(random.gauss(3,1))
+		tx = random.choice(nodes)
+		rx = random.choice(nodes)
+		while tx == rx:
+			rx = random.choice(nodes)
+		schedule.append([tx.Id,rx.Id,npkts, simTime])
+	return schedule
 
 def txCheck(nodes, proof, tx, rx, tdict, relief):
         time = 0

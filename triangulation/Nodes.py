@@ -88,8 +88,13 @@ def setRelays(node, nNodes):
 					if testDist < minDist and (testAngle < (pi/2.0) and testAngle > (pi/6.0)):
 						relay = j
 			if relay == node.Id:
-				relay = 0
+				if node.Id == 0:
+					if node.relays[i-1]<>None:
+						relay = node.relays[i-1]
+					else:
+						relay = int(math.ceil(random.uniform(1,nNodes-1)))
+				else:
+					relay = 0 
+				
 			#Os relays vao sendo atribuidos em ordem de Id
 			node.relays.append(relay)
-				
-			

@@ -273,7 +273,13 @@ if __name__ == "__main__":
 	for i in range(nNodes):
 		Nodes.setRelays(nodes[i], nNodes)
 
+	print scheduler.genTraffic(nodes,nNodes, 1, 200)
 
+	###############################################
+	#
+	#		TRANSMITING!
+	#
+	###############################################
 	num = 0
 	den = 0
 	nPeople = int(sys.argv[3])
